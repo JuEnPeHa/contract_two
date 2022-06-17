@@ -7,15 +7,40 @@ use near_sdk::{
 };
 
 #[near_bindgen]
-#[derive(BorshDeserialize, BorshSerialize, Default)]
+#[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
 pub struct Contract {
-
+    pub owner_id: AccountId,
+    pub user_id: AccountId,
 }
 
 #[near_bindgen]
 impl Contract {
+    #[init]
+    pub fn new(owner_id: AccountId, user_id: AccountId) -> Self {
+        Self { owner_id, user_id }
+    }
+
+    pub fn transfer_usdc(&self, amount: Balance) {
+        let account_id = &self.owner_id;
+        ext_transfer::ft_transfer(
+            account_id.to_string(),
+            amount.to_string(),
+            "".to_string(),
+            AccountId::new_unchecked("usdc.fakes.testnet".to_string()),
+            1,
+            Gas(5_000_000_000_000),
+        );
+        //TODO:
+        //Si fue exitoso llamar a la función delete del contrato principal.
+    }
+
     pub fn log_signer(&self) {
         env::log_str(format!("signer: {}", env::signer_account_id()).as_str());
         env::log_str(format!("predessor: {}", env::predecessor_account_id()).as_str());
     }
+}
+
+#[ext_contract(ext_transfer)]
+pub trait ExtExample {
+    fn ft_transfer(&self, receiver_id: String, amount: String, memo: String);
 }
