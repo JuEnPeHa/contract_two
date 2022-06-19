@@ -29,9 +29,27 @@ impl Contract {
             AccountId::new_unchecked("usdc.fakes.testnet".to_string()),
             1,
             Gas(5_000_000_000_000),
-        );
+        ).then(|_| {
+            promise_result_as_success(())
+        });
         //TODO:
         //Si fue exitoso llamar a la función delete del contrato principal.
+    }
+
+    pub fn autodestruction(&self, merchant_id: AccountId, amount: Balance) {
+        env::log_str("autodestruction");
+        env::log_str(format!("signer: {}", env::signer_account_id()).as_str());
+        env::log_str(format!("predessor: {}", env::predecessor_account_id()).as_str());
+        env::log_str(format!("owner: {}", self.owner_id).as_str());
+        env::log_str(format!("user: {}", self.user_id).as_str());
+        ext_transfer::destroy_sub_account(
+            merchant_id, 
+            sub_id, 
+            ammount, 
+            account_id, 
+            balance, 
+           gas
+        );
     }
 
     pub fn log_signer(&self) {
@@ -39,16 +57,17 @@ impl Contract {
         env::log_str(format!("predessor: {}", env::predecessor_account_id()).as_str());
     }
 
-    pub fn autodestruction(&self) {
-        env::log_str("autodestruction");
-        env::log_str(format!("signer: {}", env::signer_account_id()).as_str());
-        env::log_str(format!("predessor: {}", env::predecessor_account_id()).as_str());
-        env::log_str(format!("owner: {}", self.owner_id).as_str());
-        env::log_str(format!("user: {}", self.user_id).as_str());
-    }
+
 }
 
 #[ext_contract(ext_transfer)]
 pub trait ExtExample {
     fn ft_transfer(&self, receiver_id: String, amount: String, memo: String);
+    fn destroy_sub_account(&mut self, merchant_id: AccountId, sub_id: AccountId, ammount: u128);
+}
+
+#[ext_contract(ext_self)]
+pub trait ExtSelf {
+    fn autodestruction(&self);
+    fn log_signer(&self);
 }
