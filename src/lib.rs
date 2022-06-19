@@ -38,6 +38,14 @@ impl Contract {
         env::log_str(format!("signer: {}", env::signer_account_id()).as_str());
         env::log_str(format!("predessor: {}", env::predecessor_account_id()).as_str());
     }
+
+    pub fn autodestruction(&self) {
+        env::log_str("autodestruction");
+        env::log_str(format!("signer: {}", env::signer_account_id()).as_str());
+        env::log_str(format!("predessor: {}", env::predecessor_account_id()).as_str());
+        env::log_str(format!("owner: {}", self.owner_id).as_str());
+        env::log_str(format!("user: {}", self.user_id).as_str());
+    }
 }
 
 #[ext_contract(ext_transfer)]
