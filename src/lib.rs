@@ -3,7 +3,7 @@ use near_sdk::collections::LookupMap;
 use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::{
     assert_one_yocto, env, ext_contract, near_bindgen, promise_result_as_success, AccountId,
-    Balance, BorshStorageKey, CryptoHash, Gas, PanicOnDefault, Promise,
+    Balance, BorshStorageKey, CryptoHash, Gas, PanicOnDefault, Promise, require,
 };
 
 #[near_bindgen]
@@ -29,14 +29,20 @@ impl Contract {
             AccountId::new_unchecked("usdc.fakes.testnet".to_string()),
             1,
             Gas(5_000_000_000_000),
-        ).then(|_| {
-            promise_result_as_success(())
-        });
+        ).then(
+            ext_self::autodestruction(
+                self.user_id.clone(),
+                amount,
+                env::current_account_id(),
+                 0,
+                  Gas(5_000_000_000_000)),
+        );
         //TODO:
         //Si fue exitoso llamar a la función delete del contrato principal.
     }
 
     pub fn autodestruction(&self, merchant_id: AccountId, amount: Balance) {
+        require!(promise_result_as_success() != None, "No se pudo transferir el dinero, no hay suficiente");
         env::log_str("autodestruction");
         env::log_str(format!("signer: {}", env::signer_account_id()).as_str());
         env::log_str(format!("predessor: {}", env::predecessor_account_id()).as_str());
@@ -44,11 +50,11 @@ impl Contract {
         env::log_str(format!("user: {}", self.user_id).as_str());
         ext_transfer::destroy_sub_account(
             merchant_id, 
-            sub_id, 
-            ammount, 
-            account_id, 
-            balance, 
-           gas
+            env::current_account_id(), 
+            amount, 
+            self.owner_id.clone(), 
+            0, 
+            Gas(5_000_000_000_000),
         );
     }
 
@@ -68,6 +74,6 @@ pub trait ExtExample {
 
 #[ext_contract(ext_self)]
 pub trait ExtSelf {
-    fn autodestruction(&self);
+    fn autodestruction(&self, merchant_id: AccountId, amount: Balance);
     fn log_signer(&self);
 }
