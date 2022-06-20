@@ -1,10 +1,13 @@
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::LookupMap;
+use near_sdk::env::predecessor_account_id;
 use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::{
     assert_one_yocto, env, ext_contract, near_bindgen, promise_result_as_success, AccountId,
     Balance, BorshStorageKey, CryptoHash, Gas, PanicOnDefault, Promise, require,
 };
+
+//const FACTORY_ACCOUNT_STR: &str = "contract_one.jeph.testnet";
 
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
@@ -16,8 +19,12 @@ pub struct Contract {
 #[near_bindgen]
 impl Contract {
     #[init]
-    pub fn new(owner_id: AccountId, user_id: AccountId) -> Self {
-        Self { owner_id, user_id }
+    pub fn new(user_id: AccountId) -> Self {
+        let owner_id: AccountId = env::predecessor_account_id();
+        Self { 
+            owner_id, 
+            user_id 
+        }
     }
 
     pub fn transfer_usdc(&self, amount: Balance) {
@@ -28,26 +35,37 @@ impl Contract {
             "".to_string(),
             AccountId::new_unchecked("usdc.fakes.testnet".to_string()),
             1,
-            Gas(5_000_000_000_000),
+            Gas(10_000_000_000_000),
         ).then(
             ext_self::autodestruction(
                 self.user_id.clone(),
                 amount,
                 env::current_account_id(),
                  0,
-                  Gas(5_000_000_000_000)),
+                  Gas(7_000_000_000_000)),
         );
         //TODO:
         //Si fue exitoso llamar a la función delete del contrato principal.
     }
 
     pub fn autodestruction(&self, merchant_id: AccountId, amount: Balance) {
-        require!(promise_result_as_success() != None, "No se pudo transferir el dinero, no hay suficiente");
         env::log_str("autodestruction");
         env::log_str(format!("signer: {}", env::signer_account_id()).as_str());
-        env::log_str(format!("predessor: {}", env::predecessor_account_id()).as_str());
+        env::log_str(format!("predecessor: {}", env::predecessor_account_id()).as_str());
         env::log_str(format!("owner: {}", self.owner_id).as_str());
         env::log_str(format!("user: {}", self.user_id).as_str());
+        env::log_str(format!("merchant: {}", merchant_id).as_str());
+        env::log_str(format!("amount: {}", amount).as_str());
+        env::log_str(format!("promise_result_as_success: {:?}", promise_result_as_success()).as_str());
+        env::log_str(format!("promise_result_as_success: {:#?}", promise_result_as_success()).as_str());
+        env::log_str(format!("attached_gas: {:?}", env::prepaid_gas()).as_str());
+        env::log_str(format!("attached_gas: {:#?}", env::prepaid_gas()).as_str());
+        env::log_str(format!("used_gas: {:?}", env::used_gas()).as_str());
+        env::log_str(format!("used_gas: {:#?}", env::used_gas()).as_str());
+        env::log_str(format!("result: {:?}", env::promise_result(0)).as_str());
+        env::log_str(format!("result: {:#?}", env::promise_result(0)).as_str());
+        require!(promise_result_as_success() != None, "No se pudo transferir el dinero, no hay suficiente");
+
         ext_transfer::destroy_sub_account(
             merchant_id, 
             env::current_account_id(), 
@@ -62,12 +80,10 @@ impl Contract {
         env::log_str(format!("signer: {}", env::signer_account_id()).as_str());
         env::log_str(format!("predessor: {}", env::predecessor_account_id()).as_str());
     }
-
-
 }
 
 #[ext_contract(ext_transfer)]
-pub trait ExtExample {
+pub trait ExtTransfer {
     fn ft_transfer(&self, receiver_id: String, amount: String, memo: String);
     fn destroy_sub_account(&mut self, merchant_id: AccountId, sub_id: AccountId, ammount: u128);
 }
