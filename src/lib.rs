@@ -1,10 +1,7 @@
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
-use near_sdk::collections::LookupMap;
-use near_sdk::env::predecessor_account_id;
-use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::{
-    assert_one_yocto, env, ext_contract, near_bindgen, promise_result_as_success, AccountId,
-    Balance, BorshStorageKey, CryptoHash, Gas, PanicOnDefault, Promise, require,
+     env, ext_contract, near_bindgen, promise_result_as_success, AccountId,
+    Balance, CryptoHash, Gas, PanicOnDefault, Promise, require,
 };
 
 //const FACTORY_ACCOUNT_STR: &str = "contract_one.jeph.testnet";
@@ -27,6 +24,10 @@ impl Contract {
         }
     }
 
+    pub fn delete_contract(&mut self) {
+        Promise::new(AccountId::from(env::current_account_id())).delete_account(AccountId::from(self.owner_id.clone()));
+    }
+
     pub fn transfer_usdc(&self, amount: Balance) {
         let account_id = &self.owner_id;
         ext_transfer::ft_transfer(
@@ -35,7 +36,7 @@ impl Contract {
             "".to_string(),
             AccountId::new_unchecked("usdc.fakes.testnet".to_string()),
             1,
-            Gas(10_000_000_000_000),
+            Gas(5_000_000_000_000),
         ).then(
             ext_self::autodestruction(
                 self.user_id.clone(),
@@ -48,7 +49,7 @@ impl Contract {
         //Si fue exitoso llamar a la función delete del contrato principal.
     }
 
-    pub fn autodestruction(&self, merchant_id: AccountId, amount: Balance) {
+    pub fn autodestruction(&mut self, merchant_id: AccountId, amount: Balance) {
         env::log_str("autodestruction");
         env::log_str(format!("signer: {}", env::signer_account_id()).as_str());
         env::log_str(format!("predecessor: {}", env::predecessor_account_id()).as_str());
@@ -66,20 +67,22 @@ impl Contract {
         env::log_str(format!("result: {:#?}", env::promise_result(0)).as_str());
         require!(promise_result_as_success() != None, "No se pudo transferir el dinero, no hay suficiente");
 
-        ext_transfer::destroy_sub_account(
+        self.delete_contract();
+
+        Promise::new(env::current_account_id())
+        .delete_account(self.owner_id.clone()).then(
+                    ext_transfer::destroy_sub_account(
             merchant_id, 
             env::current_account_id(), 
             amount, 
             self.owner_id.clone(), 
             0, 
             Gas(5_000_000_000_000),
+        )
         );
+
     }
 
-    pub fn log_signer(&self) {
-        env::log_str(format!("signer: {}", env::signer_account_id()).as_str());
-        env::log_str(format!("predessor: {}", env::predecessor_account_id()).as_str());
-    }
 }
 
 #[ext_contract(ext_transfer)]
@@ -91,5 +94,4 @@ pub trait ExtTransfer {
 #[ext_contract(ext_self)]
 pub trait ExtSelf {
     fn autodestruction(&self, merchant_id: AccountId, amount: Balance);
-    fn log_signer(&self);
 }
