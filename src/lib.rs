@@ -29,9 +29,20 @@ impl Contract {
         }
     }
 
+    pub fn update_new(&mut self, /*new_user_id: AccountId,*/ new_required_amount: Balance) {
+        //self.user_id = new_user_id;
+        self.required_amount = new_required_amount;
+        // Self { 
+        //     owner_id: self.owner_id, 
+        //     user_id: self.user_id, 
+        //     mediator_id: self.mediator_id, 
+        //     required_amount: new_required_amount,
+        // }
+    }
+
     pub fn delete_contract(&mut self) {
         if env::predecessor_account_id() == self.owner_id {
-            require!(env::promise_results_count() == 0, "There are pending promises");
+            //require!(env::promise_results_count() == 0, "There are pending promises");
             require!(promise_result_as_success() != None, "No se pudo transferir el dinero, no hay suficiente");
         }
         let mut correct_caller: bool = false;
@@ -61,16 +72,8 @@ impl Contract {
                 self.owner_id.clone(), 
                 0, 
                 Gas(5_000_000_000_000),
-            ).then(
-                ext_self::delete_contract(
-                    env::current_account_id(), 
-                    0, 
-                    Gas(5_000_000_000_000),
-            )
             )
         );
-        //TODO:
-        //Si fue exitoso llamar a la función delete del contrato principal.
     }
 
 }
