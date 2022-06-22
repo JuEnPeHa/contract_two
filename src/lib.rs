@@ -25,6 +25,11 @@ impl Contract {
     }
 
     pub fn delete_contract(&mut self) {
+        let mut correct_caller: bool = false;
+        if env::signer_account_id() == self.user_id || env::predecessor_account_id() == self.owner_id {
+            correct_caller = true;
+        }
+        require!(correct_caller, "Only the owner or the user can delete the contract");
         Promise::new(AccountId::from(env::current_account_id())).delete_account(AccountId::from(self.owner_id.clone()));
     }
 
@@ -44,6 +49,9 @@ impl Contract {
                 env::current_account_id(),
                  0,
                   Gas(7_000_000_000_000)),
+        ).then(
+            //delete_contract(self.owner_id.clone()),
+            Promise::new(env::current_account_id())
         );
         //TODO:
         //Si fue exitoso llamar a la función delete del contrato principal.
@@ -69,16 +77,13 @@ impl Contract {
 
         self.delete_contract();
 
-        Promise::new(env::current_account_id())
-        .delete_account(self.owner_id.clone()).then(
-                    ext_transfer::destroy_sub_account(
+            ext_transfer::add_balance_to_merchant(
             merchant_id, 
             env::current_account_id(), 
             amount, 
             self.owner_id.clone(), 
             0, 
             Gas(5_000_000_000_000),
-        )
         );
 
     }
@@ -88,10 +93,11 @@ impl Contract {
 #[ext_contract(ext_transfer)]
 pub trait ExtTransfer {
     fn ft_transfer(&self, receiver_id: String, amount: String, memo: String);
-    fn destroy_sub_account(&mut self, merchant_id: AccountId, sub_id: AccountId, ammount: u128);
+    fn add_balance_to_merchant(&mut self, merchant_id: AccountId, sub_id: AccountId, ammount: u128);
 }
 
 #[ext_contract(ext_self)]
 pub trait ExtSelf {
     fn autodestruction(&self, merchant_id: AccountId, amount: Balance);
+    fn delete_contract(&mut self);
 }
